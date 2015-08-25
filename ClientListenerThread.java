@@ -4,12 +4,12 @@ import java.util.Hashtable;
 
 public class ClientListenerThread implements Runnable {
 
-    private ObjectInputStream in =  null;
+    private MSocket mSocket  =  null;
     private Hashtable<String, Client> clientTable = null;
 
-    public ClientListenerThread( ObjectInputStream in,
+    public ClientListenerThread( MSocket mSocket,
                                 Hashtable<String, Client> clientTable){
-        this.in = in;
+        this.mSocket = mSocket;
         this.clientTable = clientTable;
         System.out.println("In ClientListenerThread " + clientTable);
     }
@@ -20,7 +20,7 @@ public class ClientListenerThread implements Runnable {
         System.out.println("Starting ClientListenerThread");
         while(true){
             try{
-                received = (MPacket) in.readObject();
+                received = (MPacket) mSocket.readObject();
                 System.out.println("Received " + received);
                 client = clientTable.get(received.name);
                 if(received.event == MPacket.UP){

@@ -8,7 +8,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Server {
         
-    private static final int MAX_CLIENTS = 2;
+    private static final int MAX_CLIENTS = 1;
     private ServerSocket serverSocket = null;
     private int clientCount; //The number of clients before game starts
     private ObjectOutputStream[] outputStreamList = null; //A list of sockets

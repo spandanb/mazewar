@@ -5,12 +5,12 @@ import java.util.concurrent.BlockingQueue;
 //public class ClientSenderThread implements Runnable {
 public class ClientSenderThread implements Runnable {
 
-    private ObjectOutputStream serverStream = null;
+    private MSocket mSocket = null;
     private BlockingQueue<MPacket> eventQueue = null;
     
-    public ClientSenderThread(ObjectOutputStream serverStream,
+    public ClientSenderThread(MSocket mSocket,
                               BlockingQueue eventQueue){
-        this.serverStream = serverStream;
+        this.mSocket = mSocket;
         this.eventQueue = eventQueue;
     }
     
@@ -22,7 +22,7 @@ public class ClientSenderThread implements Runnable {
                 //Take packet from queue
                 toServer = (MPacket)eventQueue.take();
                 System.out.println("Sending " + toServer);
-                serverStream.writeObject(toServer);    
+                mSocket.writeObject(toServer);    
             }catch(IOException e){
                 Thread.currentThread().interrupt();
             }catch(InterruptedException e){

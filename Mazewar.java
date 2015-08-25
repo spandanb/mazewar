@@ -70,7 +70,7 @@ public class Mazewar extends JFrame {
          * The Mazewar instance itself. 
          */
         private Mazewar mazewar = null;
-        private Socket socket = null;
+        private MSocket mSocket = null;
         private ObjectOutputStream out = null;
         private ObjectInputStream in = null;
 
@@ -166,19 +166,16 @@ public class Mazewar extends JFrame {
                   Mazewar.quit();
                 }
                 
-                socket = new Socket(serverHost, serverPort);
-                //Create object output stream
-                out = new ObjectOutputStream(socket.getOutputStream());
-                //Create object input stream
-                in = new ObjectInputStream(socket.getInputStream());
+                mSocket = new MSocket(serverHost, serverPort);
                 //Send hello packet to server
                 MPacket hello = new MPacket(name, MPacket.HELLO, MPacket.HELLO_INIT);
                 hello.mazeWidth = mazeWidth;
                 hello.mazeHeight = mazeHeight;
                 
-                out.writeObject(hello);
+                System.out.println("Sending hello");
+                mSocket.writeObject(hello);
                 //Receive response from server
-                MPacket resp = (MPacket)in.readObject();
+                MPacket resp = (MPacket)mSocket.readObject();
                 System.out.println("Received response from server");
 
                 //Initialize queue of events
@@ -278,9 +275,9 @@ public class Mazewar extends JFrame {
         
         private void startThreads(){
                 //Start a new sender thread 
-                new Thread(new ClientSenderThread(out, eventQueue)).start();
+                new Thread(new ClientSenderThread(mSocket, eventQueue)).start();
                 //Start a new listener thread 
-                new Thread(new ClientListenerThread(in, clientTable)).start();    
+                new Thread(new ClientListenerThread(mSocket, clientTable)).start();    
         }
 
         

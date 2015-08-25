@@ -32,6 +32,12 @@ ClientListener.class : Point.java
 ClientListener.class : Point.class
 ClientListener.class : Direction.java
 ClientListener.class : Direction.class
+ClientListenerThread.class : ClientListenerThread.java
+ClientListenerThread.class : MSocket.java
+ClientListenerThread.class : MSocket.class
+ClientSenderThread.class : ClientSenderThread.java
+ClientSenderThread.class : MSocket.java
+ClientSenderThread.class : MSocket.class
 DirectedPoint.class : DirectedPoint.java
 DirectedPoint.class : Direction.java
 DirectedPoint.class : Direction.class
@@ -198,6 +204,9 @@ Mazewar.class : Direction.java
 Mazewar.class : Direction.class
 Mazewar.class : ClientEvent.java
 Mazewar.class : ClientEvent.class
+Mazewar.class : MSocket.java
+Mazewar.class : MSocket.class
+MSocket.class : MSocket.java
 MPacket.class : MPacket.java
 MPacket.class : Player.java
 MPacket.class : Player.class
