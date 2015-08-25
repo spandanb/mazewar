@@ -19,6 +19,7 @@ USA.
 
 import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * An implementation of {@link LocalClient} that is controlled by the keyboard
@@ -32,33 +33,46 @@ public class GUIClient extends LocalClient implements KeyListener {
         /**
          * Create a GUI controlled {@link LocalClient}.  
          */
-        public GUIClient(String name) {
+        private BlockingQueue eventQueue = null;
+        
+        public GUIClient(String name, BlockingQueue eventQueue) {
                 super(name);
+                this.eventQueue = eventQueue;
         }
         
         /**
          * Handle a key press.
          * @param e The {@link KeyEvent} that occurred.
          */
-        public void keyPressed(KeyEvent e) {
-                // If the user pressed Q, invoke the cleanup code and quit. 
-                if((e.getKeyChar() == 'q') || (e.getKeyChar() == 'Q')) {
-                        Mazewar.quit();
-                // Up-arrow moves forward.
-                } else if(e.getKeyCode() == KeyEvent.VK_UP) {
-                        forward();
-                // Down-arrow moves backward.
-                } else if(e.getKeyCode() == KeyEvent.VK_DOWN) {
-                        backup();
-                // Left-arrow turns left.
-                } else if(e.getKeyCode() == KeyEvent.VK_LEFT) {
-                        turnLeft();
-                // Right-arrow turns right.
-                } else if(e.getKeyCode() == KeyEvent.VK_RIGHT) {
-                        turnRight();
-                // Spacebar fires.
-                } else if(e.getKeyCode() == KeyEvent.VK_SPACE) {
-                        fire();
+        public void keyPressed(KeyEvent e){
+                try{
+                        // If the user pressed Q, invoke the cleanup code and quit. 
+                        if((e.getKeyChar() == 'q') || (e.getKeyChar() == 'Q')) {
+                                Mazewar.quit();
+                        // Up-arrow moves forward.
+                        } else if(e.getKeyCode() == KeyEvent.VK_UP) {
+                                //forward();
+                                eventQueue.put(new MPacket(getName(), MPacket.ACTION, MPacket.UP));
+                        // Down-arrow moves backward.
+                        } else if(e.getKeyCode() == KeyEvent.VK_DOWN) {
+                                //backup();
+                                eventQueue.put(new MPacket(getName(), MPacket.ACTION, MPacket.DOWN));
+                        // Left-arrow turns left.
+                        } else if(e.getKeyCode() == KeyEvent.VK_LEFT) {
+                                //turnLeft();
+                                eventQueue.put(new MPacket(getName(), MPacket.ACTION, MPacket.LEFT));
+                        // Right-arrow turns right.
+                        } else if(e.getKeyCode() == KeyEvent.VK_RIGHT) {
+                                //turnRight();
+                                eventQueue.put(new MPacket(getName(), MPacket.ACTION, MPacket.RIGHT));
+                        // Spacebar fires.
+                        } else if(e.getKeyCode() == KeyEvent.VK_SPACE) {
+                                //fire();
+                                eventQueue.put(new MPacket(getName(), MPacket.ACTION, MPacket.FIRE));
+                        }
+                }catch(InterruptedException ie){
+                        //An exception is caught, do something
+                        Thread.currentThread().interrupt();
                 }
         }
         

@@ -1,4 +1,6 @@
 *.swp
 *.~
 *.class
-
+TODO.md
+.*
+*.sh

@@ -206,6 +206,36 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
                 addClient(client, point);
         }
         
+        public synchronized void addClientAt(Client client, Point point,
+                                             int direction){
+                //Adapted from addClient(Client client)
+                //addClient(client, point);
+                assert(client != null);
+                Direction d = null;
+                if(direction == Player.North){
+                        d = Direction.North;
+                }else if(direction == Player.South){
+                        d = Direction.South;
+                }else if(direction == Player.East){
+                        d = Direction.East;
+                }else{
+                        d = Direction.West;
+                }
+                
+                DirectedPoint dPoint = new DirectedPoint(point, d);
+                assert(checkBounds(point));
+                
+                CellImpl cell = getCellImpl(point);
+                cell.setContents(client);
+                clientMap.put(client, dPoint);
+                client.registerMaze(this);
+                client.addClientListener(this);
+                update();
+                notifyClientAdd(client);
+                
+                
+        }
+        
         public synchronized Point getClientPoint(Client client) {
                 assert(client != null);
                 Object o = clientMap.get(client);

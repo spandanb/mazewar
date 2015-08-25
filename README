@@ -1,1 +1,3 @@
 Distributed implementation of mazewar with Ricart-Agrawala.
+
+The server does not respond to hello untill all N players have joined.
