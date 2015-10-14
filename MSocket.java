@@ -19,21 +19,26 @@ public class MSocket{
      * it tracks statistics and can add delays and packet-drops (possibly).
      */
 
-    //Constants
-    //What are the odds there is any delay
+	//TODO: This class should be a singleton, 
+	//that coordinates all the errors
+	
+    /*************Constants*************/
+    //The probability that there is any delay
     public final double DELAY_ODDS = 0.4;
     
-    
-    //The degree of unorder
+    //The degree of "unorderedness" 
     //0 means ordered
+    //NOTE: This is unused, but should be 
+    //used in more complex models 
     public final double UNORDER_FACTOR = 0.5; 
      
-    //For communication
+    /*************Member objects for communication*************/
     private Socket socket = null;
-    private ServerSocket serverSocket = null;
     private ObjectInputStream in = null;
     private ObjectOutputStream out = null;
+    private ServerSocket serverSocket = null;
     
+    /*************Member objects for other tasks*************/
     //For adding errors, like delays and packet reorders
     private Random random = null;
 
@@ -47,15 +52,21 @@ public class MSocket{
     //Counters for number packets sent or received
     private int rcvdCount;
     private int sentCount;
-    private static Instrumentation instrumentation;
+    
     //Amount of bytes sent and received
+    //FIX: Instrumentation package cannot be imported
+    private static Instrumentation instrumentation;
     private long rcvdSize;
     private long sentSize;
     
+    /*************Sender Thread Classes*************/
     /*
-     *The following internal classes are needed for async operations
+     *The following inner classes are needed for asynchronous 
+     *operations, such as send a packet after some delay
      */
-    //A simple sender
+    
+    //A simple sender that sends packets as-is without inducing 
+    //any errors
     class Sender implements Runnable{
         private Object obj;
         
@@ -74,7 +85,7 @@ public class MSocket{
         }
     }
     
-    //A sender that reorders packets
+    //A sender that reorders packets and adds a delay
     class SenderUnordered implements Runnable{
         private Object obj;
         
@@ -114,21 +125,7 @@ public class MSocket{
         }
     }
     
-    private int getDelay(){    
-        double r = random.nextDouble();
-        if(r < DELAY_ODDS){
-            //no delay
-            return 0;
-        }else if(r < 0.5){
-            //Small delay
-            return (int) (r * 100);
-        }else{
-            //large delay
-            return (int) (r * 1000);
-        }
-    }
-    
-        
+    /*************Constructors*************/
     /*
      *This creates a regular socket
      */
@@ -146,84 +143,80 @@ public class MSocket{
         
         rcvdCount = 0;
         sentCount = 0;
-        rcvdSize = 0;
-        sentSize = 0;
         
-        //instrumentation.getObjectSize()
         
     }
     
-    //Need this for instrumentation
-    //TODO: Fix this; doesn't work
-    /*
-    public static void premain(String args, Instrumentation inst) {
-        System.out.println("premain...");  
-        instrumentation = inst;
-    }
-    public static void agentmain(String agentArgs, Instrumentation inst){  
-      System.out.println("agentmain...");  
-      instrumentation = inst;  
-    }  
-    */
-  
-
-    
         
     /*
+     *TODO: Implement this 
      *This creates a server socket
+     *Should be very similar to the above constructor 
      */    
     public MSocket(int port){
         
     }
     
+    /*************Helpers*************/
+    
+    //Generate a random delay 
+    private int getDelay(){    
+        double r = random.nextDouble();
+        if(r < DELAY_ODDS){
+            //no delay
+            return 0;
+        }else if(r < 0.5){
+            //Small delay
+            return (int) (r * 100);
+        }else{
+            //large delay
+            return (int) (r * 1000);
+        }
+    }
+    
+    /*************Public Methods*************/
+    
+    //Read's the packet as-is
+    public Object readObject() throws IOException, ClassNotFoundException{
+        System.out.println("Number of packets received: " + ++rcvdCount);
+        return in.readObject();
+    }
+    
+    //TODO: The following three methods should be merged into one
+    //The behavior of the method should be determined by
+    //the constants DELAY_ODDS and UNORDER_FACTOR
+    
+    //Writes the object as-is
     public void writeObject(Object o) throws IOException{        
         out.writeObject(o);
     }
     
-    public Object readObject() throws IOException, ClassNotFoundException{
-        System.out.println("Number of packets received: " + ++rcvdCount);
-        //System.out.println("Number of bytes received: " + rcvdSize);
-        return in.readObject();
-    }
-    
+    //Writes the object, i.e. the packet after some delay
     public void writeObjectDelay(Object o){
-        //Delays the write by 1000 ms
+        //Delays the write by 3000 ms
         scheduler.schedule(new Sender(o), 3000, MILLISECONDS);
     }
     
+    //Writes the object, while adding delay and unordering the packets
     public void writeObjectUnordered(Object o) throws InterruptedException{
         System.out.println("Number of packets sent: " + ++sentCount);
-        
-        //TODO: unable to import instrumentation package; need to fix this
-        //sentSize += MSocket.instrumentation.getObjectSize(o);
-        //System.out.println("Number of bytes sent: " + sentSize);
-        
+                
         //Changes the order of packets sent
         egressQueue.put(o);
         
-        //NOTE: this creates a delay of 2000 ms. 
-        //To create a random delay, randomly vary the amount
-        //scheduler.schedule(new SenderUnordered(), 2000, MILLISECONDS);
-        scheduler.schedule(new SenderUnordered(), 0, MILLISECONDS);
-    }
+        //NOTE: this creates a delay of n milliseconds.
+        //To create a random delay, randomly vary this amount
+        int delay = 0; //2000;
         
+        scheduler.schedule(new SenderUnordered(), delay, MILLISECONDS);
+    }
+    
+    //Closes network objects, i.e. sockets, InputObjectStreams, 
+    // OutputObjectStream
     public void close() throws IOException{
         in.close();
         out.close();
         socket.close();
     }
-    
-    private void addDelay(){
-        //This block the whole code
-        try {
-            System.out.println("Sleeping");
-            Thread.sleep(1000);
-            System.out.println("Waking up");
-        } catch(InterruptedException ex) {
-            //System.out.println("Waking up");
-            //Thread.currentThread().interrupt();
-        }
-    }
-    
 
 }
