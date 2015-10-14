@@ -1,3 +1,27 @@
-Distributed implementation of mazewar with Ricart-Agrawala.
+Introduction
+============
+This implements a client-server Mazewar game. 
+Additionally, the MSocket class can be used to 
+induce errors, such as adding delays and reordering packets.
 
-The server does not respond to hello untill all N players have joined.
+
+Architecture
+============
+The server starts and listens on some port.
+
+When the client contacts the server, the server spawns a 
+ServerListenerThread. 
+
+When the expected number of clients have contacted the 
+server, the server spawns a ServerSenderThreads, that sends 
+the name and location of all other clients to all other clients.
+
+The client communicates using MSockets.
+
+MSockets have three important member objects, which consist of
+a Socket, an ObjectInputStream, and an ObjectOutputStream
+
+The MSocket can reorder packets and add delays based on 
+2 constants.
+
+
