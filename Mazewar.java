@@ -174,6 +174,7 @@ public class Mazewar extends JFrame {
                 
                 System.out.println("Sending hello");
                 mSocket.writeObject(hello);
+                System.out.println("hello sent");
                 //Receive response from server
                 MPacket resp = (MPacket)mSocket.readObject();
                 System.out.println("Received response from server");

@@ -22,9 +22,7 @@ public class ClientSenderThread implements Runnable {
                 //Take packet from queue
                 toServer = (MPacket)eventQueue.take();
                 System.out.println("Sending " + toServer);
-                mSocket.writeObject(toServer);    
-            }catch(IOException e){
-                Thread.currentThread().interrupt();
+                mSocket.writeObjectUnordered(toServer);    
             }catch(InterruptedException e){
                 Thread.currentThread().interrupt();    
             }
