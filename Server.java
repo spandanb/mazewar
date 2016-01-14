@@ -9,7 +9,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class Server {
     
 	//The maximum of clients that will join
-	//Server waits until this many clients join 
+	//Server waits until the max number of clients to join 
     private static final int MAX_CLIENTS = 2;
     private ServerSocket serverSocket = null;
     private int clientCount; //The number of clients before game starts
@@ -27,10 +27,13 @@ public class Server {
         eventQueue = new LinkedBlockingQueue<MPacket>();
     }
     
+    /*
+    *Starts the listener and sender threads 
+    */
     public void startThreads() throws IOException{
         //Listen for new clients
         while(clientCount < MAX_CLIENTS){
-            //Start a new thread for new client connection
+            //Start a new listener thread for each new client connection
             Socket socket = serverSocket.accept();
             
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());

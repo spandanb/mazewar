@@ -38,6 +38,7 @@ ClientListenerThread.class : MSocket.class
 ClientSenderThread.class : ClientSenderThread.java
 ClientSenderThread.class : MSocket.java
 ClientSenderThread.class : MSocket.class
+Debug.class : Debug.java
 DirectedPoint.class : DirectedPoint.java
 DirectedPoint.class : Direction.java
 DirectedPoint.class : Direction.class
@@ -206,10 +207,13 @@ Mazewar.class : ClientEvent.java
 Mazewar.class : ClientEvent.class
 Mazewar.class : MSocket.java
 Mazewar.class : MSocket.class
-MSocket.class : MSocket.java
 MPacket.class : MPacket.java
 MPacket.class : Player.java
 MPacket.class : Player.class
+MServerSocket.class: MServerSocket.java
+MServerSocket.class: MSocket.java
+MServerSocket.class: MSocket.class
+MSocket.class : MSocket.java
 OverheadMazePanel.class : OverheadMazePanel.java
 OverheadMazePanel.class : RobotClient.java
 OverheadMazePanel.class : RobotClient.class

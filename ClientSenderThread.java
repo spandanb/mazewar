@@ -2,7 +2,6 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.concurrent.BlockingQueue;
 
-//public class ClientSenderThread implements Runnable {
 public class ClientSenderThread implements Runnable {
 
     private MSocket mSocket = null;
@@ -16,14 +15,15 @@ public class ClientSenderThread implements Runnable {
     
     public void run() {
         MPacket toServer = null;
-        System.out.println("Starting ClientSenderThread");
+        if(Debug.debug) System.out.println("Starting ClientSenderThread");
         while(true){
             try{                
                 //Take packet from queue
                 toServer = (MPacket)eventQueue.take();
-                System.out.println("Sending " + toServer);
-                mSocket.writeObjectUnordered(toServer);    
+                if(Debug.debug) System.out.println("Sending " + toServer);
+                mSocket.writeObject(toServer);    
             }catch(InterruptedException e){
+                e.printStackTrace();
                 Thread.currentThread().interrupt();    
             }
             

@@ -273,7 +273,13 @@ public class Mazewar extends JFrame {
                 overheadPanel.repaint();
                 this.requestFocusInWindow();
         }
-        
+
+        /*
+        *Starts the ClientSenderThread, which is 
+         responsible for sending events
+         and the ClientListenerThread which is responsible for 
+         listening for events
+        */
         private void startThreads(){
                 //Start a new sender thread 
                 new Thread(new ClientSenderThread(mSocket, eventQueue)).start();

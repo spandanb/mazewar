@@ -11,13 +11,13 @@ public class ClientListenerThread implements Runnable {
                                 Hashtable<String, Client> clientTable){
         this.mSocket = mSocket;
         this.clientTable = clientTable;
-        System.out.println("In ClientListenerThread " + clientTable);
+        if(Debug.debug) System.out.println("Instatiating ClientListenerThread");
     }
 
     public void run() {
         MPacket received = null;
         Client client = null;
-        System.out.println("Starting ClientListenerThread");
+        if(Debug.debug) System.out.println("Starting ClientListenerThread");
         while(true){
             try{
                 received = (MPacket) mSocket.readObject();
@@ -39,9 +39,8 @@ public class ClientListenerThread implements Runnable {
             }catch(IOException e){
                 Thread.currentThread().interrupt();    
             }catch(ClassNotFoundException e){
-                Thread.currentThread().interrupt();    
+                e.printStackTrace();
             }            
-            
         }
     }
 }
