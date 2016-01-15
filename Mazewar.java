@@ -172,12 +172,12 @@ public class Mazewar extends JFrame {
                 hello.mazeWidth = mazeWidth;
                 hello.mazeHeight = mazeHeight;
                 
-                System.out.println("Sending hello");
+                if(Debug.debug) System.out.println("Sending hello");
                 mSocket.writeObject(hello);
-                System.out.println("hello sent");
+                if(Debug.debug) System.out.println("hello sent");
                 //Receive response from server
                 MPacket resp = (MPacket)mSocket.readObject();
-                System.out.println("Received response from server");
+                if(Debug.debug) System.out.println("Received response from server");
 
                 //Initialize queue of events
                 eventQueue = new LinkedBlockingQueue<MPacket>();
@@ -188,20 +188,18 @@ public class Mazewar extends JFrame {
                 //RemoteClient remoteClient = null;
                 for(Player player: resp.players){  
                         if(player.name.equals(name)){
-                        	System.out.println("Adding guiClient: " + player);
+                        	if(Debug.debug)System.out.println("Adding guiClient: " + player);
                                 guiClient = new GUIClient(name, eventQueue);
                                 maze.addClientAt(guiClient, player.point, player.direction);
                                 this.addKeyListener(guiClient);
                                 clientTable.put(player.name, guiClient);
                         }else{
-                        	System.out.println("Adding remoteClient: " + player);
+                        	if(Debug.debug)System.out.println("Adding remoteClient: " + player);
                                 RemoteClient remoteClient = new RemoteClient(player.name);
                                 maze.addClientAt(remoteClient, player.point, player.direction);
                                 clientTable.put(player.name, remoteClient);
                         }
                 }
-                System.out.println(clientTable);
-                
                 
                 // Use braces to force constructors not to be called at the beginning of the
                 // constructor.

@@ -38,7 +38,7 @@ public class MSocket{
     //The degree of packet reordereding caused by the network
     //value should be [0, 1]
     //0 means ordered
-    public final double UNORDER_FACTOR = 0.0; 
+    public final double UNORDER_FACTOR = 1.0; 
     
     //To disable all network errors set:
     //DELAY_WEIGHT = 0, DELAY_THRESHOLD = 0, UNORDER_FACTOR = 0
@@ -170,13 +170,12 @@ public class MSocket{
         
         executor = Executors.newFixedThreadPool(10);
         
-        //TODO: switch server side sockets to MSockets
         rcvdCount = 0;
         sentCount = 0;
     }
 
     //Similar to above, except takes an initialized socket
-    //This constructor is for internal use only
+    //NOTE: This constructor is for internal use only
     public MSocket(Socket soc) throws IOException{
         socket = soc;
         out = new ObjectOutputStream(socket.getOutputStream());
@@ -206,7 +205,7 @@ public class MSocket{
     
     //Get a random index 
     private int getRandomIndex(int size){
-        return random.nextInt() % size;    
+        return random.nextInt(size);    
     }
     
     /*************Public Methods*************/
@@ -238,10 +237,10 @@ public class MSocket{
                 //put the first back in the queue
                 ingressQueue.put(first);
             }else{//UNORDER_FACTOR == 1, high degree of reordering
-                ArrayList events = new ArrayList(2 * ingressQueue.size());
+                ArrayList events = new ArrayList();
                 ingressQueue.drainTo(events);
                 //get event at random index
-                int idx = getRandomIndex(ingressQueue.size());
+                int idx = getRandomIndex(events.size());
                 incoming = events.remove(idx);
                 //put the rest back in the ingress queue
                 while(events.size() > 0)

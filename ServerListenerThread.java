@@ -1,24 +1,23 @@
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.concurrent.BlockingQueue;
 
 public class ServerListenerThread implements Runnable {
 
-    private ObjectInputStream in =  null;
+    private MSocket mSocket =  null;
     private BlockingQueue eventQueue = null;
 
-    public ServerListenerThread( ObjectInputStream in, BlockingQueue eventQueue){
-        this.in = in;
+    public ServerListenerThread( MSocket mSocket, BlockingQueue eventQueue){
+        this.mSocket = mSocket;
         this.eventQueue = eventQueue;
     }
 
     public void run() {
         MPacket received = null;
-        System.out.println("Starting a listener");
+        if(Debug.debug) System.out.println("Starting a listener");
         while(true){
             try{
-                received = (MPacket) in.readObject();
-                System.out.println("Received: " + received);
+                received = (MPacket) mSocket.readObject();
+                if(Debug.debug) System.out.println("Received: " + received);
                 eventQueue.put(received);    
             }catch(InterruptedException e){
                 Thread.currentThread().interrupt();    

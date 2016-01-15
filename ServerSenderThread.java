@@ -1,18 +1,18 @@
 import java.io.InvalidObjectException;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.Random;
 
 public class ServerSenderThread implements Runnable {
 
-    private ObjectOutputStream[] outputStreamList = null;
+    //private ObjectOutputStream[] outputStreamList = null;
+    private MSocket[] mSocketList = null;
     private BlockingQueue eventQueue = null;
     private int globalSequenceNumber; 
     
-    public ServerSenderThread(ObjectOutputStream[] outputStreamList,
+    public ServerSenderThread(MSocket[] mSocketList,
                               BlockingQueue eventQueue){
-        this.outputStreamList = outputStreamList;
+        this.mSocketList = mSocketList;
         this.eventQueue = eventQueue;
         this.globalSequenceNumber = 0;
     }
@@ -24,10 +24,10 @@ public class ServerSenderThread implements Runnable {
     public void handleHello(){
         
         //The number of players
-        int playerCount = outputStreamList.length;
+        int playerCount = mSocketList.length;
         Random randomGen = null;
         Player[] players = new Player[playerCount];
-        System.out.println("In handleHello");
+        if(Debug.debug) System.out.println("In handleHello");
         MPacket hello = null;
         try{        
             for(int i=0; i<playerCount; i++){
@@ -52,9 +52,9 @@ public class ServerSenderThread implements Runnable {
             hello.event = MPacket.HELLO_RESP;
             hello.players = players;
             //Now broadcast the HELLO
-            System.out.println("Sending " + hello);
-            for(ObjectOutputStream out: outputStreamList){
-                out.writeObject(hello);   
+            if(Debug.debug) System.out.println("Sending " + hello);
+            for(MSocket mSocket: mSocketList){
+                mSocket.writeObject(hello);   
             }
         }catch(InterruptedException e){
             e.printStackTrace();
@@ -63,7 +63,6 @@ public class ServerSenderThread implements Runnable {
             e.printStackTrace();
             Thread.currentThread().interrupt();
         }
-        System.out.println("Exiting handleHello");
     }
     
     public void run() {
@@ -77,19 +76,15 @@ public class ServerSenderThread implements Runnable {
                 //to all clients
                 toBroadcast = (MPacket)eventQueue.take();
                 //Tag packet with sequence number and increment sequence number
-                //NOTE: This approach won't work in the distributed case
                 toBroadcast.sequenceNumber = this.globalSequenceNumber++;
-                System.out.println("Sending " + toBroadcast);
+                if(Debug.debug) System.out.println("Sending " + toBroadcast);
                 //Send it to all clients
-                for(ObjectOutputStream out: outputStreamList){
-                    out.writeObject(toBroadcast);
+                for(MSocket mSocket: mSocketList){
+                    mSocket.writeObject(toBroadcast);
                 }
             }catch(InterruptedException e){
                 System.out.println("Throwing Interrupt");
                 Thread.currentThread().interrupt();    
-            }catch(IOException e){
-                System.out.println("Throwing Interrupt");
-                Thread.currentThread().interrupt();
             }
             
         }
