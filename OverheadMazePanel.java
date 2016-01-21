@@ -217,7 +217,7 @@ public class OverheadMazePanel extends JPanel implements MazeListener {
                                                         
                                                 } else {
                                                         if(o instanceof Projectile) {
-                                                                g2.setColor(Color.yellow);
+                                                                g2.setColor(Color.red);//g2.setColor(Color.yellow);
                                                                 double xoffset = llx + j*cellwidth + (cellwidth/2.0);
                                                                 double yoffset = lly + i*cellheight + (cellheight/2.0);
                                                                 g2.translate(xoffset, yoffset);
