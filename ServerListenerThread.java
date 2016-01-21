@@ -20,11 +20,11 @@ public class ServerListenerThread implements Runnable {
                 if(Debug.debug) System.out.println("Received: " + received);
                 eventQueue.put(received);    
             }catch(InterruptedException e){
-                Thread.currentThread().interrupt();    
+                e.printStackTrace();
             }catch(IOException e){
-                Thread.currentThread().interrupt();
+                e.printStackTrace();
             }catch(ClassNotFoundException e){
-                Thread.currentThread().interrupt();    
+                e.printStackTrace();
             }
             
         }

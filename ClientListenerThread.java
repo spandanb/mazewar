@@ -37,7 +37,7 @@ public class ClientListenerThread implements Runnable {
                     throw new UnsupportedOperationException();
                 }    
             }catch(IOException e){
-                Thread.currentThread().interrupt();    
+                e.printStackTrace();
             }catch(ClassNotFoundException e){
                 e.printStackTrace();
             }            
