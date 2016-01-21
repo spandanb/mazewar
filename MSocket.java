@@ -39,9 +39,13 @@ public class MSocket{
     public final double DELAY_THRESHOLD = 0.0;
     
     //The degree of packet reordereding caused by the network
-    //value should be [0, 1]
+    //value should be between [0, 1]
     //0 means ordered
     public final double UNORDER_FACTOR = 1.0; 
+    
+    //Probability of a drop
+    //Should be between [0, 1]
+    public final double DROP_RATE = 0.0;
     
     //To disable all network errors set:
     //DELAY_WEIGHT = 0, DELAY_THRESHOLD = 0, UNORDER_FACTOR = 0
@@ -80,13 +84,12 @@ public class MSocket{
             try{
                 
                 Object incoming = in.readObject();
-                if(Debug.debug) System.out.println("Number of packets received: " + ++rcvdCount);
-                if(Debug.debug) System.out.println("Received packet: " + incoming);
                 while(incoming != null){
                     if(Debug.debug) System.out.println("Number of packets received: " + ++rcvdCount);
                     if(Debug.debug) System.out.println("Received packet: " + incoming);
                     ingressQueue.put(incoming);
                     incoming = in.readObject();
+                    if(Debug.debug) System.out.println("Received Packet size is " + ObjectSizeFetcher.getObjectSize(incoming));
                 }
             }catch(StreamCorruptedException e){
                 System.out.println(e.getMessage());
@@ -149,10 +152,13 @@ public class MSocket{
                 //Now send all the events
                 while(events.size() > 0){
                     if(Debug.debug) System.out.println("Number of packets sent: " + ++sentCount);
+                        //System.out.println("Number of packets sent: " + ++sentCount);
                     //Need to synchronize on the ObjectOutputStream instance; otherwise
                     //multiple writes may corrupt stream and/or packets
                     synchronized(out) {
-                        out.writeObject(events.remove(0));
+                        Object outgoing = events.remove(0);
+                        if(Debug.debug) System.out.println("Sent packet size is " + ObjectSizeFetcher.getObjectSize(outgoing));
+                        out.writeObject(outgoing);
                         out.flush();
                         out.reset();
                     }
