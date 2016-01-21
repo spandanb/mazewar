@@ -4,9 +4,7 @@ import java.io.OptionalDataException;
 import java.io.IOException;
 import java.io.EOFException;
 import java.io.ObjectOutputStream;
-import java.io.BufferedOutputStream;
 import java.io.ObjectInputStream;
-import java.io.BufferedInputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Executors;
@@ -161,7 +159,7 @@ public class MSocket{
                 }
 
             }catch(InterruptedException e){
-                System.out.println("ERROR: Thread was interrupted!");
+                e.printStackTrace();
             }catch(IOException e){
                 e.printStackTrace();
             }
@@ -176,9 +174,8 @@ public class MSocket{
         socket = new Socket(host, port);
         //NOTE: outputStream should be initialized before
         //inputStream, otherwise it will block
-        out = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-        out.flush();
-        in = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
+        out = new ObjectOutputStream(socket.getOutputStream());
+        in = new ObjectInputStream(socket.getInputStream());
         
         egressQueue = new LinkedBlockingQueue<Object>();
         ingressQueue = new LinkedBlockingQueue<Object>();
@@ -199,9 +196,8 @@ public class MSocket{
     public MSocket(Socket soc) throws IOException{
         socket = soc;
 
-        out = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-        out.flush();
-        in = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
+        out = new ObjectOutputStream(socket.getOutputStream());
+        in = new ObjectInputStream(socket.getInputStream());
         
         egressQueue = new LinkedBlockingQueue<Object>();
         ingressQueue = new LinkedBlockingQueue<Object>();
@@ -270,7 +266,7 @@ public class MSocket{
                     ingressQueue.put(events.remove(0));
             }
         }catch(InterruptedException e){
-            System.out.println("ERROR: Thread was interrupted!");
+            e.printStackTrace();
         }
         return incoming;
     }
@@ -282,7 +278,7 @@ public class MSocket{
             //Place packet in the queue, and later change the order of packets sent
             egressQueue.put(o);
         }catch(InterruptedException e){
-            System.out.println("ERROR: Thread was interrupted!");
+            e.printStackTrace();
         }
         
         executor.submit(new NetworkErrorSender());
