@@ -1,11 +1,9 @@
 #!/bin/bash
-JAVA_HOME=/usr/
 
-#if [ "$#" -ne 1 ]; then
-#    echo "Usage: ./run.sh  <port>"
-#    exit 1
-#fi
-#
-#${JAVA_HOME}/bin/java Server $1 
+if [ "$#" -ne 1 ]; then
+    echo "Usage: ./server.sh  <port>"
+    exit 1
+fi
 
-${JAVA_HOME}/bin/java Server 4000 
+${JAVA_HOME}/bin/java Server $1 
+
