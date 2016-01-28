@@ -33,24 +33,32 @@ public class MSocket{
     public final double DELAY_WEIGHT = 100.0;
     
     //This roughly corresponds to the likelihood 
-    //of any delay. This should be a value between (-inf, inf)
+    //of any delay. This should be a value between [0, inf)
     //A higher value corresponds to a lower likelihood 
     //for delay
     public final double DELAY_THRESHOLD = 0.0;
     
     //The degree of packet reordereding caused by the network
     //value should be between [0, 1]
-    //0 means ordered
+    //0 means ordered, 1 means high degree of reordering
     public final double UNORDER_FACTOR = 1.0; 
     
     //Probability of a drop
-    //Should be between [0, 1]
+    //Should be between [0, 1)
+    //0 means no drops
+    //for a large number of drops set to >0.5
+    //Packets are only droped on send
     public final double DROP_RATE = 0.0;
     
+    //Whether instrumentation should be 
+    //setup and stats should be collected or not
+    //If set must be run with -javaagent:ObjectSizeFetcherAgent.jar
+    public final boolean MEASURE_STATS = false; 
+    
     //To disable all network errors set:
-    //DELAY_WEIGHT = 0, DELAY_THRESHOLD = 0, UNORDER_FACTOR = 0
+    //DELAY_WEIGHT = 0, DELAY_THRESHOLD = 0, UNORDER_FACTOR = 0, DROP_RATE = 0
     //To induced a large degree of network errors set:
-    //DELAY_WEIGHT = 100, DELAY_THRESHOLD = 0,UNORDER_FACTOR = 1
+    //DELAY_WEIGHT = 100, DELAY_THRESHOLD = 0,UNORDER_FACTOR = 1, DROP_RATE = 0.6
 
     /*************Member objects for communication*************/
     private Socket socket = null;
@@ -89,7 +97,8 @@ public class MSocket{
                     if(Debug.debug) System.out.println("Received packet: " + incoming);
                     ingressQueue.put(incoming);
                     incoming = in.readObject();
-                    if(Debug.debug) System.out.println("Received Packet size is " + ObjectSizeFetcher.getObjectSize(incoming));
+                    if(MEASURE_STATS)
+                        if(Debug.debug) System.out.println("Received Packet size is " + ObjectSizeFetcher.getObjectSize(incoming));
                 }
             }catch(StreamCorruptedException e){
                 System.out.println(e.getMessage());
@@ -152,16 +161,22 @@ public class MSocket{
                 //Now send all the events
                 while(events.size() > 0){
                     if(Debug.debug) System.out.println("Number of packets sent: " + ++sentCount);
-                        //System.out.println("Number of packets sent: " + ++sentCount);
+                    //System.out.println("Number of packets sent: " + ++sentCount);
                     //Need to synchronize on the ObjectOutputStream instance; otherwise
                     //multiple writes may corrupt stream and/or packets
-                    synchronized(out) {
-                        Object outgoing = events.remove(0);
-                        if(Debug.debug) System.out.println("Sent packet size is " + ObjectSizeFetcher.getObjectSize(outgoing));
-                        out.writeObject(outgoing);
-                        out.flush();
-                        out.reset();
+                    Object outgoing = events.remove(0);
+                    if(!dropPacket()){
+                        synchronized(out) {
+                            if(MEASURE_STATS)
+                                if(Debug.debug) System.out.println("Sent packet size is " + ObjectSizeFetcher.getObjectSize(outgoing));
+                            out.writeObject(outgoing);
+                            out.flush();
+                            out.reset();
+                        }
+                    }else{
+                        if(Debug.debug) System.out.println("Dropping Packet");
                     }
+
                 }
 
             }catch(InterruptedException e){
@@ -231,6 +246,14 @@ public class MSocket{
     private int getRandomIndex(int size){
         return random.nextInt(size);    
     }
+
+    //return boolean for whether
+    //to drop packet or not
+    private boolean dropPacket(){
+        //Generates U~[0,1)
+        double randDouble = random.nextDouble();
+        return randDouble < DROP_RATE;
+    }
     
     /*************Public Methods*************/
     
@@ -278,7 +301,7 @@ public class MSocket{
     }
 
 
-    //Writes the object, while adding delay and unordering the packets
+    //Writes the object, while inducing network delay, reordering, and packet drops
     public void writeObject(Object o) {
         try{ 
             //Place packet in the queue, and later change the order of packets sent
