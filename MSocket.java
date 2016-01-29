@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.EOFException;
 import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Executors;
@@ -50,11 +51,6 @@ public class MSocket{
     //Packets are only droped on send
     public final double DROP_RATE = 0.0;
     
-    //Whether instrumentation should be 
-    //setup and stats should be collected or not
-    //If set must be run with -javaagent:ObjectSizeFetcherAgent.jar
-    public final boolean MEASURE_STATS = false; 
-    
     //To disable all network errors set:
     //DELAY_WEIGHT = 0, DELAY_THRESHOLD = 0, UNORDER_FACTOR = 0, DROP_RATE = 0
     //To induced a large degree of network errors set:
@@ -64,7 +60,7 @@ public class MSocket{
     private Socket socket = null;
     private ObjectInputStream in = null;
     private ObjectOutputStream out = null;
-    
+
     /*************Member objects for other tasks*************/
     //For adding errors, like delays and packet reorders
     private Random random = null;
@@ -76,12 +72,35 @@ public class MSocket{
     
     private ExecutorService executor = null;
     
-    //Counters for number packets sent or received
+    //Counters for number packets sent and received
     private int rcvdCount;
     private int sentCount;
-    
+
+    //Counter for number of bytes sent and received 
+    private long rcvdBytes;
+    private long sentBytes;
 
     /*************Helper Classes*************/
+
+    /*
+    * The following class is used for measuring size of packets
+    * being sent and received
+    */
+    static class Sizeof{
+        public static int sizeof(Object obj) throws IOException{
+            
+            ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteOutputStream);
+    
+            objectOutputStream.writeObject(obj);
+            objectOutputStream.flush();
+            objectOutputStream.close();
+    
+            return byteOutputStream.toByteArray().length;
+            
+        }    
+    }
+
     /*
      *The following inner class asynchronously
      *receives packets and adds it to the ingressQueue
@@ -94,11 +113,12 @@ public class MSocket{
                 Object incoming = in.readObject();
                 while(incoming != null){
                     if(Debug.debug) System.out.println("Number of packets received: " + ++rcvdCount);
+                    int size = Sizeof.sizeof(incoming);
+                    rcvdBytes += size; 
+                    if(Debug.debug) System.out.println("Received Packet size is " + size + ". Total bytes receieved is " + rcvdBytes);
                     if(Debug.debug) System.out.println("Received packet: " + incoming);
                     ingressQueue.put(incoming);
                     incoming = in.readObject();
-                    if(MEASURE_STATS)
-                        if(Debug.debug) System.out.println("Received Packet size is " + ObjectSizeFetcher.getObjectSize(incoming));
                 }
             }catch(StreamCorruptedException e){
                 System.out.println(e.getMessage());
@@ -109,6 +129,8 @@ public class MSocket{
             }catch(EOFException e){
                 e.printStackTrace();
                 close();
+                System.out.println("Exiting");
+                System.exit(0);
             }catch(IOException e){
                 e.printStackTrace();
             }catch(ClassNotFoundException e){
@@ -160,15 +182,17 @@ public class MSocket{
 
                 //Now send all the events
                 while(events.size() > 0){
+                    //Packet is "sent", drops happen at the network
+                    //i.e. count it regardless of whether it will actually be sent 
                     if(Debug.debug) System.out.println("Number of packets sent: " + ++sentCount);
-                    //System.out.println("Number of packets sent: " + ++sentCount);
                     //Need to synchronize on the ObjectOutputStream instance; otherwise
                     //multiple writes may corrupt stream and/or packets
                     Object outgoing = events.remove(0);
+                    int size = Sizeof.sizeof(outgoing);
+                    sentBytes += size;
+                    if(Debug.debug) System.out.println("Sent packet size is " + size + ". Total bytes sent is " + sentBytes);
                     if(!dropPacket()){
                         synchronized(out) {
-                            if(MEASURE_STATS)
-                                if(Debug.debug) System.out.println("Sent packet size is " + ObjectSizeFetcher.getObjectSize(outgoing));
                             out.writeObject(outgoing);
                             out.flush();
                             out.reset();
@@ -197,7 +221,7 @@ public class MSocket{
         //inputStream, otherwise it will block
         out = new ObjectOutputStream(socket.getOutputStream());
         in = new ObjectInputStream(socket.getInputStream());
-        
+
         egressQueue = new LinkedBlockingQueue<Object>();
         ingressQueue = new LinkedBlockingQueue<Object>();
         random = new Random(/*seed*/);
@@ -210,6 +234,8 @@ public class MSocket{
         
         rcvdCount = 0;
         sentCount = 0;
+        rcvdBytes = 0;
+        sentBytes = 0;
     }
 
     //Similar to above, except takes an initialized socket
@@ -230,6 +256,8 @@ public class MSocket{
         
         rcvdCount = 0;
         sentCount = 0;
+        rcvdBytes = 0;
+        sentBytes = 0;
     }
     
 
