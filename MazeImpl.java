@@ -492,10 +492,16 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
                         point = new Point(randomGen.nextInt(maxX),randomGen.nextInt(maxY));
                         cell = getCellImpl(point);
                 }
-                Direction d = Direction.random();
-                while(cell.isWall(d)) {
-                        d = Direction.random();
-                }
+
+                //This causes issues with the respawn orientation
+                //Direction d = Direction.random();
+                //while(cell.isWall(d)) {
+                //        d = Direction.random();
+                //}
+
+                //Just fix the direction
+                Direction d = Direction.North;
+
                 cell.setContents(target);
                 clientMap.put(target, new DirectedPoint(point, d));
                 update();
