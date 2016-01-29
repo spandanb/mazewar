@@ -5,5 +5,5 @@ if [ "$#" -ne 2 ]; then
     exit 1
 fi
 
-${JAVA_HOME}/bin/java Mazewar $1 $2 
+java Mazewar $1 $2 
 
