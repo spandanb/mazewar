@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Collections;
+import java.util.Date;
 
 public class MSocket{
     /*
@@ -49,7 +50,11 @@ public class MSocket{
     //0 means no drops
     //for a large number of drops set to >0.5
     //Packets are only droped on send
-    public final double DROP_RATE = 0.0;
+    public final double DROP_RATE = 0.2;
+
+    //Number of milli seconds after this MSocket is created
+    //that packets are transmitted without network errors
+    public final long ERROR_FREE_TRANSMISSION_PERIOD = 30000; //30 seconds
     
     //To disable all network errors set:
     //DELAY_WEIGHT = 0, DELAY_THRESHOLD = 0, UNORDER_FACTOR = 0, DROP_RATE = 0
@@ -79,6 +84,9 @@ public class MSocket{
     //Counter for number of bytes sent and received 
     private long rcvdBytes;
     private long sentBytes;
+
+    //Time of creation of this MSocket
+    private Date creationTime;
 
     /*************Helper Classes*************/
 
@@ -236,6 +244,8 @@ public class MSocket{
         sentCount = 0;
         rcvdBytes = 0;
         sentBytes = 0;
+
+        creationTime = new Date();
     }
 
     //Similar to above, except takes an initialized socket
@@ -258,6 +268,8 @@ public class MSocket{
         sentCount = 0;
         rcvdBytes = 0;
         sentBytes = 0;
+
+        creationTime = new Date();
     }
     
 
@@ -292,10 +304,16 @@ public class MSocket{
      ingress queue being automatically updated by another thread
     */
     public synchronized Object readObject() throws IOException, ClassNotFoundException{
-
+        
+        //First check if we are in the grace period
+        if((new Date()).getTime() - creationTime.getTime() <  
+                ERROR_FREE_TRANSMISSION_PERIOD){
+            return readObjectNoError(); 
+        }
+        
         //The packet to be returned
         Object incoming = null; 
-        
+
         try{
             //Add a random delay
             int delay = getDelay();
@@ -331,6 +349,14 @@ public class MSocket{
 
     //Writes the object, while inducing network delay, reordering, and packet drops
     public void writeObject(Object o) {
+
+        //Check if we are within the grace period
+        if((new Date()).getTime() - creationTime.getTime() <  
+                ERROR_FREE_TRANSMISSION_PERIOD){
+            writeObjectNoError(o);
+            return; 
+        }
+
         try{ 
             //Place packet in the queue, and later change the order of packets sent
             egressQueue.put(o);
