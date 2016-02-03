@@ -214,6 +214,12 @@ MServerSocket.class: MServerSocket.java
 MServerSocket.class: MSocket.java
 MServerSocket.class: MSocket.class
 MSocket.class : MSocket.java
+MSocket.class : ObjectSizeFetcher.java
+MSocket.class : ObjectSizeFetcher.class
+MSocket.class : PairKey.java
+MSocket.class : PairKey.class
+PairKey.class : PairKey.java
+ObjectSizeFetcher.class : ObjectSizeFetcher.java
 OverheadMazePanel.class : OverheadMazePanel.java
 OverheadMazePanel.class : RobotClient.java
 OverheadMazePanel.class : RobotClient.class
