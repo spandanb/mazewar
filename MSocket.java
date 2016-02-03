@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.EOFException;
 import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Executors;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Date;
 
 public class MSocket{
     /*
@@ -31,27 +33,34 @@ public class MSocket{
     //This should be a value between [0, inf), with
     // 1000 being a good value
     //To disable delays, set to 0.0
-    public final double DELAY_WEIGHT = 0;
+    public final double DELAY_WEIGHT = 100.0;
 
     //This roughly corresponds to the likelihood
-    //of any delay. This should be a value between (-inf, inf)
+    //of any delay. This should be a value between [0, inf)
     //A higher value corresponds to a lower likelihood
     //for delay
     public final double DELAY_THRESHOLD = 0.0;
 
     //The degree of packet reordereding caused by the network
     //value should be between [0, 1]
-    //0 means ordered
-    public final double UNORDER_FACTOR = 0;
+    //0 means ordered, 1 means high degree of reordering
+    public final double UNORDER_FACTOR = 1.0;
 
     //Probability of a drop
-    //Should be between [0, 1]
-    public final double DROP_RATE = 0.0;
+    //Should be between [0, 1)
+    //0 means no drops
+    //for a large number of drops set to >0.5
+    //Packets are only droped on send
+    public final double DROP_RATE = 0.2;
+
+    //Number of milli seconds after this MSocket is created
+    //that packets are transmitted without network errors
+    public final long ERROR_FREE_TRANSMISSION_PERIOD = 30000; //30 seconds
 
     //To disable all network errors set:
-    //DELAY_WEIGHT = 0, DELAY_THRESHOLD = 0, UNORDER_FACTOR = 0
+    //DELAY_WEIGHT = 0, DELAY_THRESHOLD = 0, UNORDER_FACTOR = 0, DROP_RATE = 0
     //To induced a large degree of network errors set:
-    //DELAY_WEIGHT = 100, DELAY_THRESHOLD = 0,UNORDER_FACTOR = 1
+    //DELAY_WEIGHT = 100, DELAY_THRESHOLD = 0,UNORDER_FACTOR = 1, DROP_RATE = 0.6
 
     /*************Member objects for communication*************/
     private Socket socket = null;
@@ -73,10 +82,34 @@ public class MSocket{
     private int rcvdCount;
     private int sentCount;
     private HashMap<PairKey<String, Integer>, Boolean> rcvdEvent;
-    private int rcvdTraffic;
 
+    private long rcvdBytes;
+    private long sentBytes;
+
+    //Time of creation of this MSocket
+    private Date creationTime;
 
     /*************Helper Classes*************/
+
+    /*
+    * The following class is used for measuring size of packets
+    * being sent and received
+    */
+    static class Sizeof{
+        public static int sizeof(Object obj) throws IOException{
+
+            ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteOutputStream);
+
+            objectOutputStream.writeObject(obj);
+            objectOutputStream.flush();
+            objectOutputStream.close();
+
+            return byteOutputStream.toByteArray().length;
+
+        }
+    }
+
     /*
      *The following inner class asynchronously
      *receives packets and adds it to the ingressQueue
@@ -95,12 +128,13 @@ public class MSocket{
                     }
 
                     if(Debug.debug) System.out.println("\nNumber of packets received: " + ++rcvdCount);
+                    int size = Sizeof.sizeof(incoming);
+                    rcvdBytes += size;
+                    if(Debug.debug) System.out.println("Received Packet size is " + size + ". Total bytes receieved is " + rcvdBytes);
                     if(Debug.debug) System.out.println("Received packet: " + incoming);
-                    if(Debug.debug) System.out.println("Received Packet size is " + ObjectSizeFetcher.getObjectSize(incoming));
-                    rcvdTraffic += ObjectSizeFetcher.getObjectSize(incoming);
                     if(Debug.debug) System.out.println("Received Event size is " + rcvdEvent.size());
                     if(Debug.debug) System.out.println("Average packets per event is " + (double)rcvdCount / (double)rcvdEvent.size());
-                    if(Debug.debug) System.out.println("Average traffic size per event:" + (double)rcvdTraffic / (double)rcvdEvent.size() + "\n");
+                    if(Debug.debug) System.out.println("Average traffic size per event:" + (double)rcvdBytes / (double)rcvdEvent.size() + "\n");
                     ingressQueue.put(incoming);
 
                     incoming = in.readObject();
@@ -114,6 +148,8 @@ public class MSocket{
             }catch(EOFException e){
                 e.printStackTrace();
                 close();
+                System.out.println("Exiting");
+                System.exit(0);
             }catch(IOException e){
                 e.printStackTrace();
             }catch(ClassNotFoundException e){
@@ -165,17 +201,25 @@ public class MSocket{
 
                 //Now send all the events
                 while(events.size() > 0){
+                    //Packet is "sent", drops happen at the network
+                    //i.e. count it regardless of whether it will actually be sent
                     if(Debug.debug) System.out.println("Number of packets sent: " + ++sentCount);
-                        //System.out.println("Number of packets sent: " + ++sentCount);
                     //Need to synchronize on the ObjectOutputStream instance; otherwise
                     //multiple writes may corrupt stream and/or packets
-                    synchronized(out) {
-                        Object outgoing = events.remove(0);
-                        if(Debug.debug) System.out.println("Sent packet size is " + ObjectSizeFetcher.getObjectSize(outgoing));
-                        out.writeObject(outgoing);
-                        out.flush();
-                        out.reset();
+                    Object outgoing = events.remove(0);
+                    int size = Sizeof.sizeof(outgoing);
+                    sentBytes += size;
+                    if(Debug.debug) System.out.println("Sent packet size is " + size + ". Total bytes sent is " + sentBytes);
+                    if(!dropPacket()){
+                        synchronized(out) {
+                            out.writeObject(outgoing);
+                            out.flush();
+                            out.reset();
+                        }
+                    }else{
+                        if(Debug.debug) System.out.println("Dropping Packet");
                     }
+
                 }
 
             }catch(InterruptedException e){
@@ -210,7 +254,10 @@ public class MSocket{
         rcvdCount = 0;
         rcvdEvent = new HashMap<PairKey<String, Integer>, Boolean>();
         sentCount = 0;
-        rcvdTraffic = 0;
+        rcvdBytes = 0;
+        sentBytes = 0;
+
+        creationTime = new Date();
     }
 
     //Similar to above, except takes an initialized socket
@@ -232,7 +279,10 @@ public class MSocket{
         rcvdCount = 0;
         rcvdEvent = new HashMap<PairKey<String, Integer>, Boolean>();
         sentCount = 0;
-        rcvdTraffic = 0;
+        rcvdBytes = 0;
+        sentBytes = 0;
+
+        creationTime = new Date();
     }
 
 
@@ -250,6 +300,14 @@ public class MSocket{
         return random.nextInt(size);
     }
 
+    //return boolean for whether
+    //to drop packet or not
+    private boolean dropPacket(){
+        //Generates U~[0,1)
+        double randDouble = random.nextDouble();
+        return randDouble < DROP_RATE;
+    }
+
     /*************Public Methods*************/
 
     /*
@@ -259,6 +317,12 @@ public class MSocket{
      ingress queue being automatically updated by another thread
     */
     public synchronized Object readObject() throws IOException, ClassNotFoundException{
+
+        //First check if we are in the grace period
+        if((new Date()).getTime() - creationTime.getTime() <
+                ERROR_FREE_TRANSMISSION_PERIOD){
+            return readObjectNoError();
+        }
 
         //The packet to be returned
         Object incoming = null;
@@ -296,8 +360,16 @@ public class MSocket{
     }
 
 
-    //Writes the object, while adding delay and unordering the packets
+    //Writes the object, while inducing network delay, reordering, and packet drops
     public void writeObject(Object o) {
+
+        //Check if we are within the grace period
+        if((new Date()).getTime() - creationTime.getTime() <
+                ERROR_FREE_TRANSMISSION_PERIOD){
+            writeObjectNoError(o);
+            return;
+        }
+
         try{
             //Place packet in the queue, and later change the order of packets sent
             egressQueue.put(o);

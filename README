@@ -43,17 +43,3 @@ To run the server:
 To run the clients: 
 </path/to/java/>java Mazewar <server host> <server port>
 
-
-Instrumentation
-===============
-To Measuring Object Size, run the various components as:
-
-java -javaagent:ObjectSizeFetcherAgent.jar Mazewar localhost 8000
-
-See the following fore more details on measuring object size:
-http://stackoverflow.com/questions/52353/in-java-what-is-the-best-way-to-determine-the-size-of-an-object
-
-Jar Files:
-https://docs.oracle.com/javase/tutorial/deployment/jar/build.html
-https://docs.oracle.com/javase/tutorial/deployment/jar/modman.html
-
